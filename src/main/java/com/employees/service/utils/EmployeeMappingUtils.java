@@ -48,12 +48,8 @@ public class EmployeeMappingUtils {
     }
 
     public static Employee updateModel(Employee employee, EmployeeUpdateDto updateDto, Department department) {
-        employee.setFirstName(updateDto.getFirstName());
-        employee.setLastName(updateDto.getLastName());
-        employee.setRole(updateDto.getRole());
-        employee.setEmail(updateDto.getEmail());
+        BeanUtils.copyProperties(updateDto, employee);
         employee.setDepartment(department);
-        employee.setVersion(updateDto.getVersion());
         return employee;
     }
 }
