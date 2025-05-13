@@ -80,10 +80,11 @@ public class DepartmentServiceImpl implements DepartmentService {
             return;
         }
 
-        Employee newTeamLead = getValidTeamLead(department, newTeamLeadId);
+        Employee newTeamLead = employeeRepo.findById(newTeamLeadId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + newTeamLeadId));
         if (newTeamLead.equals(department.getTeamLead())) return;
 
-        reassignTeamLead(department, newTeamLead);
+        assignTeamLead(department, newTeamLead);
     }
 
     private void removeCurrentTeamLeadIfExists(Department department) {
@@ -95,37 +96,29 @@ public class DepartmentServiceImpl implements DepartmentService {
                 });
     }
 
-    private Employee getValidTeamLead(Department department, Long teamLeadId) {
-        Employee teamLead = employeeRepo.findById(teamLeadId)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + teamLeadId));
-
-        if (teamLead.getDepartment() == null || !teamLead.getDepartment().getId().equals(department.getId())) {
-            Optional.ofNullable(teamLead.getDepartment())
-                    .filter(oldDept -> teamLead.equals(oldDept.getTeamLead()))
-                    .ifPresent(oldDept -> {
-                        oldDept.setTeamLead(null);
-                        departmentRepo.save(oldDept);
-                    });
-
-            teamLead.setDepartment(department);
-            employeeRepo.save(teamLead);
-        }
-
-        return teamLead;
-    }
-
-    private void reassignTeamLead(Department department, Employee newTeamLead) {
+    private void assignTeamLead(Department department, Employee newTeamLead) {
         departmentRepo.findByTeamLeadId(newTeamLead.getId())
                 .filter(dept -> !dept.getId().equals(department.getId()))
-                .ifPresent(dept -> {
-                    dept.setTeamLead(null);
-                    departmentRepo.save(dept);
+                .ifPresent(oldDept -> {
+                    oldDept.setTeamLead(null);
+                    departmentRepo.save(oldDept);
                 });
 
-        removeCurrentTeamLeadIfExists(department);
+        Optional.ofNullable(department.getTeamLead())
+                .filter(currentTL -> !currentTL.equals(newTeamLead))
+                .ifPresent(currentTL -> {
+                    department.setTeamLead(null);
+                    currentTL.setRole(EmployeeRole.MEMBER);
+                    employeeRepo.save(currentTL);
+                });
+
+        if (newTeamLead.getDepartment() == null || !newTeamLead.getDepartment().getId().equals(department.getId())) {
+            newTeamLead.setDepartment(department);
+        }
 
         department.setTeamLead(newTeamLead);
         newTeamLead.setRole(EmployeeRole.TEAM_LEAD);
+
         employeeRepo.save(newTeamLead);
     }
 
