@@ -13,11 +13,13 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 @Entity
 @Table(indexes = {@Index(name = "idx_department_teamlead", columnList = "team_lead_id")})
 @Data
 @EqualsAndHashCode(callSuper = false)
+@ToString(exclude = "teamLead")
 public class Department extends AuditModel {
 
     @Id
